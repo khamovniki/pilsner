@@ -6,12 +6,11 @@ class Server(Bottle):
     def __init__(self, bot: Bot):
         super(Server, self).__init__()
         self.bot = bot
-        self.post('/sendMessage', callback=self.send_message)
+        self.post('/bot/sendPost', callback=self.send_post)
 
-    def send_message(self):
+    def send_post(self):
         message = request.json
-        print(message)
-        msg_text = message['text']
+        msg_text = message['message']
         receivers = message['users']
         for user in receivers:
             self.bot.send_message(chat_id=user, text=msg_text)
@@ -19,4 +18,4 @@ class Server(Bottle):
 
 def run_server(bot):
     server = Server(bot)
-    server.run(host='localhost', port=8080)
+    server.run(host='localhost', port=8090)
