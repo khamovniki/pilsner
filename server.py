@@ -1,4 +1,4 @@
-from bottle import post, run, request, Bottle
+from bottle import request, Bottle
 from telegram import Bot
 
 
