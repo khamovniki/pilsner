@@ -39,9 +39,11 @@ def start(bot, update):
 '''
     chat_id = update.message.chat_id
     api.create_user(chat_id)
+    reply_markup = get_suggest_to_subscribe_markup()
     bot.send_message(chat_id=chat_id,
                      text=text,
-                     parse_mode='HTML')
+                     parse_mode='HTML',
+                     reply_markup=reply_markup)
 
 
 def wrap_tags(tag_list, callback_prefix):
@@ -95,10 +97,15 @@ def tags_callback(bot, update):
 
 
 def send_user_has_no_tags_message(bot, update):
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('Подписаться на что-нибудь', callback_data=f'subscribe')]])
+    reply_markup = get_suggest_to_subscribe_markup()
     bot.send_message(chat_id=extract_chat_id(update),
                      text='Вы не подписаны ни на одну тему 😥',
                      reply_markup=reply_markup)
+
+
+def get_suggest_to_subscribe_markup():
+    return InlineKeyboardMarkup([[InlineKeyboardButton('Подписаться на интересующие темы',
+                                                       callback_data=f'subscribe')]])
 
 
 def unsub(bot, update):
@@ -114,7 +121,7 @@ def unsub(bot, update):
 
 
 def get_sub_unsub_markup():
-    subscribe_button = InlineKeyboardButton('Подписаться на что-нибудь', callback_data='subscribe')
+    subscribe_button = get_suggest_to_subscribe_markup()
     unsubscribe_button = InlineKeyboardButton('Отписаться', callback_data='unsubscribe')
     return InlineKeyboardMarkup([[subscribe_button], [unsubscribe_button]])
 
