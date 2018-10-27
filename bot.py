@@ -32,15 +32,16 @@ def extract_chat_id(update):
 def start(bot, update):
     text = '''
 <b>Привет!</b>
-Этот бот присылает только те новости университета, которые вам интересны.
-Выберите интересующие вас темы и мы будем делать рассылку, основываясь на ваших предпочтениях
+Этот бот присылает университетские новости, но только те, которые вам интересны.
+Вы выбираете интересующие вас темы и мы будем делать рассылку, основываясь на ваших предпочтениях
+/tags – Добавить интересующие темы
+/unsub – Отписаться от какой-либо темы
 '''
     chat_id = update.message.chat_id
     api.create_user(chat_id)
     bot.send_message(chat_id=chat_id,
                      text=text,
                      parse_mode='HTML')
-    tags(bot, update)
 
 
 def wrap_tags(tag_list, callback_prefix):
