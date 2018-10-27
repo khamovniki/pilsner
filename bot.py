@@ -5,6 +5,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, Updater
 
 from api import Api
 
+
 SUB_PREFIX = 'sub'
 UNSUB_PREFIX = 'unsub'
 
@@ -49,6 +50,7 @@ def start(bot, update):
 def wrap_tags(tag_list, callback_prefix):
     def callback(tag):
         return f'{callback_prefix}%{tag}'
+
     return InlineKeyboardMarkup([[InlineKeyboardButton(tag, callback_data=callback(tag))] for tag in tag_list])
 
 
@@ -56,7 +58,13 @@ def tags(bot, update):
     chat_id = extract_chat_id(update)
     tag_list = api.get_absent_user_tags(chat_id)
     reply_markup = wrap_tags(tag_list, SUB_PREFIX)
-    bot.send_message(chat_id=chat_id, text="Выберите интерсующие вас темы", reply_markup=reply_markup)
+    if update.message:
+        bot.send_message(chat_id=chat_id, text='Выберите интерсующие вас темы', reply_markup=reply_markup)
+    else:
+        bot.edit_message_text(chat_id=chat_id,
+                              message_id=update.callback_query.message.message_id,
+                              text='Выберите интерсующие вас темы',
+                              reply_markup=reply_markup)
 
 
 def suggest_new_tags(bot, update, tag_list, subscribed_tag):
@@ -114,9 +122,15 @@ def unsub(bot, update):
         send_user_has_no_tags_message(bot, update)
         return
     reply_markup = wrap_tags(user_tags, UNSUB_PREFIX)
-    bot.send_message(chat_id=chat_id,
-                     text='От какой темы хотите отписаться?',
-                     reply_markup=reply_markup)
+    if update.message:
+        bot.send_message(chat_id=chat_id,
+                         text='От какой темы хотите отписаться?',
+                         reply_markup=reply_markup)
+    else:
+        bot.edit_message_text(chat_id=chat_id,
+                              message_id=update.callback_query.message.message_id,
+                              text='От какой темы хотите отписаться?',
+                              reply_markup=reply_markup)
 
 
 def get_sub_unsub_markup():
