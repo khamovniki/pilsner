@@ -28,7 +28,9 @@ def start(bot, update):
 Этот бот присылает только те новости университета, которые вам интересны.
 Выберите интересующие вас темы и мы будем делать рассылку, основываясь на ваших предпочтениях
 '''
-    bot.send_message(chat_id=update.message.chat_id,
+    chat_id = update.message.chat_id
+    api.create_user(chat_id)
+    bot.send_message(chat_id=chat_id,
                      text=text,
                      parse_mode='HTML')
     tags(bot, update)
@@ -36,14 +38,15 @@ def start(bot, update):
 
 def wrap_tags(tag_list, callback_prefix):
     def callback(tag):
-        return f'{callback_prefix}${tag}'
+        return f'{callback_prefix}%{tag}'
     return InlineKeyboardMarkup([[InlineKeyboardButton(tag, callback_data=callback(tag))] for tag in tag_list])
 
 
 def tags(bot, update):
-    tag_list = api.get_tags()
+    chat_id = update.message.chat_id
+    tag_list = api.get_absent_user_tags(chat_id)
     reply_markup = wrap_tags(tag_list, SUB_PREFIX)
-    bot.send_message(chat_id=update.message.chat_id, text="Выберите интерсующие вас темы", reply_markup=reply_markup)
+    bot.send_message(chat_id=chat_id, text="Выберите интерсующие вас темы", reply_markup=reply_markup)
 
 
 def suggest_new_tags(bot, update, tag_list):
@@ -77,14 +80,14 @@ def edit_tags_message(bot, update):
 
 
 def tags_callback(bot, update):
-    tag = update.callback_query.data
+    tag = update.callback_query.data.split('%')[1]
     api.add_user_tag(update.callback_query.message.chat_id, tag)
     edit_tags_message(bot, update)
 
 
 def send_user_has_no_tags_message(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
-                     text='Вы не подписаны ни на одну тему 😥')
+                     text='Вы не подписаны ни на одну тему 😥. Подпишитесь на что-нибудь /tags')
 
 
 def unsub(bot, update):
@@ -100,13 +103,13 @@ def unsub(bot, update):
 
 
 def unsub_callback(bot, update):
-    tag = update.callback_query.data
+    tag = update.callback_query.data.split('%')[1]
     api.delete_user_tag(update.callback_query.message.chat_id, tag)
     chat_id = update.callback_query.message.chat_id
     message_id = update.callback_query.message.message_id
     bot.edit_message_text(chat_id=chat_id,
                           message_id=message_id,
-                          text=f'Вы описались от темы «{tag}»')
+                          text=f'Вы описались от темы «{tag}». Хотите отписаться от чего-нибудь еще? /unsub')
 
 
 def start_bot(token):
@@ -116,11 +119,11 @@ def start_bot(token):
     dispatcher.add_handler(start_handler)
     tags_handler = CommandHandler('tags', tags)
     dispatcher.add_handler(tags_handler)
-    tags_callback_handler = CallbackQueryHandler(tags_callback, pattern=f'{SUB_PREFIX}$.*')
+    tags_callback_handler = CallbackQueryHandler(tags_callback, pattern=f'{SUB_PREFIX}%.*')
     dispatcher.add_handler(tags_callback_handler)
     unsub_handler = CommandHandler('unsub', unsub)
     dispatcher.add_handler(unsub_handler)
-    unsub_callback_handler = CallbackQueryHandler(unsub_callback, pattern=f'{UNSUB_PREFIX}$.*')
+    unsub_callback_handler = CallbackQueryHandler(unsub_callback, pattern=f'{UNSUB_PREFIX}%.*')
     dispatcher.add_handler(unsub_callback_handler)
     updater.start_polling()
     return updater.bot
