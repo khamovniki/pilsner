@@ -2,8 +2,18 @@ from bottle import request, Bottle
 from telegram import Bot
 
 
+def replace(string, target, replacement):
+    return replacement.join(string.split(target))
+
+
 def prepare_msg(message):
-    return '\n'.join(''.join(message.split('<p>')).split('</p>'))
+    return replace(replace(message, '<p>', ''), '</p>', '\n')
+
+
+def remove_styles(message):
+    no_strong = replace(replace(message, '<strong>', ''), '</strong>', '')
+    no_italic = replace(replace(no_strong, '<em>', ''), '</em>', '')
+    return no_italic
 
 
 class Server(Bottle):
@@ -17,7 +27,14 @@ class Server(Bottle):
         msg_text = prepare_msg(message['message'])
         receivers = message['users']
         for user in receivers:
-            self.bot.send_message(chat_id=user, text=msg_text, parse_mode='HTML')
+            self.send_message(user, msg_text)
+
+    def send_message(self, chat_id, message):
+        try:
+            self.bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
+        except:
+            flatten_message = remove_styles(message)
+            self.bot.send_message(chat_id=chat_id, text=flatten_message, parse_mode='HTML')
 
 
 def run_server(bot):
