@@ -39,7 +39,7 @@ def start(bot, update):
 '''
     chat_id = update.message.chat_id
     api.create_user(chat_id)
-    reply_markup = get_suggest_to_subscribe_button()
+    reply_markup = InlineKeyboardMarkup([[get_suggest_to_subscribe_button()]])
     bot.send_message(chat_id=chat_id,
                      text=text,
                      parse_mode='HTML',
