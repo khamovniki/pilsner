@@ -22,6 +22,13 @@ REQUEST_KWARGS = {
 }
 
 
+def extract_chat_id(update):
+    try:
+        return update.message.chat_id
+    except:
+        return update.callback_query.message.chat_id
+
+
 def start(bot, update):
     text = '''
 <b>Привет!</b>
@@ -43,18 +50,19 @@ def wrap_tags(tag_list, callback_prefix):
 
 
 def tags(bot, update):
-    chat_id = update.message.chat_id
+    chat_id = extract_chat_id(update)
     tag_list = api.get_absent_user_tags(chat_id)
     reply_markup = wrap_tags(tag_list, SUB_PREFIX)
     bot.send_message(chat_id=chat_id, text="Выберите интерсующие вас темы", reply_markup=reply_markup)
 
 
-def suggest_new_tags(bot, update, tag_list):
+def suggest_new_tags(bot, update, tag_list, subscribed_tag):
     chat_id = update.callback_query.message.chat_id
     message_id = update.callback_query.message.message_id
     reply_markup = wrap_tags(tag_list, SUB_PREFIX)
-    text = '''
-Выберите еще темы (либо проигнорируйте это сообщение, 
+    text = f'''
+Вы подписались на «{subscribed_tag}»
+Выберите еще темы (либо проигнорируйте это сообщение, \
 мы уже сохранили выбранные вами темы и будем делать рассылку по ним
 '''
     bot.edit_message_text(chat_id=chat_id,
@@ -71,10 +79,10 @@ def send_no_available_tags_message(bot, update):
                           text='Вы выбрали все теги. А вас просто заинтересовать')
 
 
-def edit_tags_message(bot, update):
+def edit_tags_message(bot, update, subscribed_tag):
     tag_list = api.get_absent_user_tags(update.callback_query.message.chat_id)
     if tag_list:
-        suggest_new_tags(bot, update, tag_list)
+        suggest_new_tags(bot, update, tag_list, subscribed_tag)
     else:
         send_no_available_tags_message(bot, update)
 
@@ -82,16 +90,18 @@ def edit_tags_message(bot, update):
 def tags_callback(bot, update):
     tag = update.callback_query.data.split('%')[1]
     api.add_user_tag(update.callback_query.message.chat_id, tag)
-    edit_tags_message(bot, update)
+    edit_tags_message(bot, update, tag)
 
 
 def send_user_has_no_tags_message(bot, update):
-    bot.send_message(chat_id=update.message.chat_id,
-                     text='Вы не подписаны ни на одну тему 😥. Подпишитесь на что-нибудь /tags')
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('Подписаться на что-нибудь', callback_data=f'subscribe')]])
+    bot.send_message(chat_id=extract_chat_id(update),
+                     text='Вы не подписаны ни на одну тему 😥',
+                     reply_markup=reply_markup)
 
 
 def unsub(bot, update):
-    chat_id = update.message.chat_id
+    chat_id = extract_chat_id(update)
     user_tags = api.get_user_tags(chat_id)
     if not user_tags:
         send_user_has_no_tags_message(bot, update)
@@ -102,14 +112,22 @@ def unsub(bot, update):
                      reply_markup=reply_markup)
 
 
+def get_sub_unsub_markup():
+    subscribe_button = InlineKeyboardButton('Подписаться на что-нибудь', callback_data='subscribe')
+    unsubscribe_button = InlineKeyboardButton('Отписаться', callback_data='unsubscribe')
+    return InlineKeyboardMarkup([[subscribe_button], [unsubscribe_button]])
+
+
 def unsub_callback(bot, update):
     tag = update.callback_query.data.split('%')[1]
     api.delete_user_tag(update.callback_query.message.chat_id, tag)
     chat_id = update.callback_query.message.chat_id
     message_id = update.callback_query.message.message_id
+    reply_markup = get_sub_unsub_markup()
     bot.edit_message_text(chat_id=chat_id,
                           message_id=message_id,
-                          text=f'Вы описались от темы «{tag}». Хотите отписаться от чего-нибудь еще? /unsub')
+                          text=f'Вы описались от темы «{tag}»',
+                          reply_markup=reply_markup)
 
 
 def start_bot(token):
@@ -125,5 +143,9 @@ def start_bot(token):
     dispatcher.add_handler(unsub_handler)
     unsub_callback_handler = CallbackQueryHandler(unsub_callback, pattern=f'{UNSUB_PREFIX}%.*')
     dispatcher.add_handler(unsub_callback_handler)
+    subscribe_callback_handler = CallbackQueryHandler(tags, pattern='subscribe')
+    dispatcher.add_handler(subscribe_callback_handler)
+    unsubscribe_callback_handler = CallbackQueryHandler(unsub, pattern='unsubscribe')
+    dispatcher.add_handler(unsubscribe_callback_handler)
     updater.start_polling()
     return updater.bot

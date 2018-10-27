@@ -13,7 +13,7 @@ class Server(Bottle):
         msg_text = message['message']
         receivers = message['users']
         for user in receivers:
-            self.bot.send_message(chat_id=user, text=msg_text)
+            self.bot.send_message(chat_id=user, text=msg_text, parse_mode='HTML')
 
 
 def run_server(bot):
