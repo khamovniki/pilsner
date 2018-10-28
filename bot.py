@@ -15,6 +15,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 api = Api('http://localhost:8080/api')
 
+recommendation_cache = {}
+
 REQUEST_KWARGS = {
     'proxy_url': 'socks5://178.62.60.220:1080',
     'urllib3_proxy_kwargs': {
@@ -155,6 +157,11 @@ def unsub_callback(bot, update):
 def recommend(bot, update):
     chat_id = update.message.chat_id
     recommended_tags = api.get_recommendations(chat_id)
+    if not recommended_tags:
+        bot.send_message(chat_id=chat_id,
+                         text='Нам нечего вам порекомендовать 😥')
+        return
+    recommendation_cache[chat_id] = recommended_tags
     reply_markup = wrap_tags(recommended_tags, SUB_PREFIX_POPUP)
     bot.send_message(chat_id=chat_id,
                      text='Эти теги могут вас заинтересовать',
@@ -162,11 +169,17 @@ def recommend(bot, update):
 
 
 def recommend_callback(bot, update):
-    subscribed_tag = update.callback_query.data.split('%')[1]
     chat_id = update.callback_query.message.chat_id
+    subscribed_tag = update.callback_query.data.split('%')[1]
     api.add_user_tag(chat_id, subscribed_tag)
-    bot.send_message(chat_id=chat_id,
-                     text=f'Вы подписались на «{subscribed_tag}»')
+    cached_recommendations = recommendation_cache[chat_id]
+    cached_recommendations.remove(subscribed_tag)
+    message_id = update.callback_query.message.message_id
+    reply_markup = wrap_tags(cached_recommendations, SUB_PREFIX_POPUP)
+    bot.edit_message_text(chat_id=chat_id,
+                          message_id=message_id,
+                          text=f'Вы подписались на «{subscribed_tag}»',
+                          reply_markup=reply_markup)
 
 
 def start_bot(token):
