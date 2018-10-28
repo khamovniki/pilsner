@@ -15,11 +15,13 @@ def remove_styles(message):
     no_italic = replace(replace(no_strong, '<em>', ''), '</em>', '')
     return no_italic
 
+
 def failsafe(func):
     try:
         func()
     except:
         pass
+
 
 class Server(Bottle):
     def __init__(self, bot: Bot):
