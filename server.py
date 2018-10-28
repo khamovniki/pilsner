@@ -15,6 +15,11 @@ def remove_styles(message):
     no_italic = replace(replace(no_strong, '<em>', ''), '</em>', '')
     return no_italic
 
+def failsafe(func):
+    try:
+        func()
+    except:
+        pass
 
 class Server(Bottle):
     def __init__(self, bot: Bot):
@@ -31,10 +36,10 @@ class Server(Bottle):
 
     def send_message(self, chat_id, message):
         try:
-            self.bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML')
+            failsafe(lambda: self.bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML'))
         except:
             flatten_message = remove_styles(message)
-            self.bot.send_message(chat_id=chat_id, text=flatten_message, parse_mode='HTML')
+            failsafe(lambda: self.bot.send_message(chat_id=chat_id, text=flatten_message, parse_mode='HTML'))
 
 
 def run_server(bot):
