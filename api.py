@@ -22,3 +22,6 @@ class Api:
 
     def get_absent_user_tags(self, chat_id):
         return r.get(f'{self.host}/user/{chat_id}/listAbsentTags').json()
+
+    def get_recommendations(self, chat_id):
+        return r.get(f'{self.host}/user/{chat_id}/recommend').json()

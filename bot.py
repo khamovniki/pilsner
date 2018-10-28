@@ -7,6 +7,7 @@ from api import Api
 
 
 SUB_PREFIX = 'sub'
+SUB_PREFIX_POPUP = 'sub-popup'
 UNSUB_PREFIX = 'unsub'
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -147,8 +148,25 @@ def unsub_callback(bot, update):
     reply_markup = get_sub_unsub_markup()
     bot.edit_message_text(chat_id=chat_id,
                           message_id=message_id,
-                          text=f'Вы описались от темы «{tag}»',
+                          text=f'Вы отписались от темы «{tag}»',
                           reply_markup=reply_markup)
+
+
+def recommend(bot, update):
+    chat_id = update.message.chat_id
+    recommended_tags = api.get_recommendations(chat_id)
+    reply_markup = wrap_tags(recommended_tags, SUB_PREFIX_POPUP)
+    bot.send_message(chat_id=chat_id,
+                     text='Эти теги могут вас заинтересовать',
+                     reply_markup=reply_markup)
+
+
+def recommend_callback(bot, update):
+    subscribed_tag = update.callback_query.data.split('%')[1]
+    chat_id = update.callback_query.message.chat_id
+    api.add_user_tag(chat_id, subscribed_tag)
+    bot.send_message(chat_id=chat_id,
+                     text=f'Вы подписались на «{subscribed_tag}»')
 
 
 def start_bot(token):
@@ -162,11 +180,15 @@ def start_bot(token):
     dispatcher.add_handler(tags_callback_handler)
     unsub_handler = CommandHandler('unsub', unsub)
     dispatcher.add_handler(unsub_handler)
+    recommend_handler = CommandHandler('recommend', recommend)
+    dispatcher.add_handler(recommend_handler)
     unsub_callback_handler = CallbackQueryHandler(unsub_callback, pattern=f'{UNSUB_PREFIX}%.*')
     dispatcher.add_handler(unsub_callback_handler)
     subscribe_callback_handler = CallbackQueryHandler(tags, pattern='subscribe')
     dispatcher.add_handler(subscribe_callback_handler)
     unsubscribe_callback_handler = CallbackQueryHandler(unsub, pattern='unsubscribe')
     dispatcher.add_handler(unsubscribe_callback_handler)
+    recommend_callback_handler = CallbackQueryHandler(recommend_callback, pattern=f'{SUB_PREFIX_POPUP}%.*')
+    dispatcher.add_handler(recommend_callback_handler)
     updater.start_polling()
     return updater.bot
