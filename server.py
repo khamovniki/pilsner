@@ -1,5 +1,6 @@
-from bottle import request, Bottle
+from bottle import Bottle, request
 from telegram import Bot
+from telegram.error import BadRequest
 
 
 def replace(string, target, replacement):
@@ -19,8 +20,9 @@ def remove_styles(message):
 def failsafe(func):
     try:
         func()
-    except:
-        pass
+    except BadRequest as br:
+        if br.message != 'Chat not found':
+            raise br
 
 
 class Server(Bottle):
