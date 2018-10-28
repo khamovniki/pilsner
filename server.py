@@ -8,7 +8,7 @@ def replace(string, target, replacement):
 
 
 def prepare_msg(message):
-    return replace(replace(message, '<p>', ''), '</p>', '\n')
+    return replace(replace(replace(message, '<p>', ''), '</p>', '\n'), '<br>', '\n')
 
 
 def remove_styles(message):
